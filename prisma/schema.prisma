@@ -1,0 +1,223 @@
+// Prisma Schema for Impara News - SQLite Version
+// No PostgreSQL installation required!
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ============================================
+// USERS TABLE
+// ============================================
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         UserRole  @default(admin)
+  name         String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  articles Article[]
+  ads      Ad[]
+  auctions Auction[]
+  bids     Bid[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  admin
+  editor
+  author
+}
+
+// ============================================
+// CATEGORIES TABLE
+// ============================================
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  nameRw      String    @map("name_rw")
+  slug        String    @unique
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  articles Article[]
+
+  @@map("categories")
+}
+
+// ============================================
+// ARTICLES TABLE
+// ============================================
+enum ArticleStatus {
+  draft
+  published
+  archived
+}
+
+model Article {
+  id          Int           @id @default(autoincrement())
+  title       String
+  slug        String        @unique
+  content     String
+  excerpt     String?
+  imageUrl    String?       @map("image_url")
+  authorId    Int           @map("author_id")
+  categoryId  Int           @map("category_id")
+  isBreaking  Boolean       @default(false) @map("is_breaking")
+  isFeatured  Boolean       @default(false) @map("is_featured")
+  status      ArticleStatus @default(draft)
+  views       Int           @default(0)
+  readTime    String?       @map("read_time")
+  tags        String?
+  publishedAt DateTime?     @map("published_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  comments Comment[]
+
+  @@map("articles")
+}
+
+// ============================================
+// ADS TABLE (Banner Ads)
+// ============================================
+model Ad {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  imageUrl    String   @map("image_url")
+  linkUrl     String?  @map("link_url")
+  position    String   @default("banner")
+  isActive    Boolean  @default(true) @map("is_active")
+  clicks      Int      @default(0)
+  impressions Int      @default(0)
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  creator User @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@map("ads")
+}
+
+// ============================================
+// COMMENTS TABLE
+// ============================================
+model Comment {
+  id          Int      @id @default(autoincrement())
+  content     String
+  authorName  String   @map("author_name")
+  authorEmail String   @map("author_email")
+  articleId   Int      @map("article_id")
+  isApproved  Boolean  @default(false) @map("is_approved")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+// ============================================
+// NEWSLETTER SUBSCRIBERS TABLE
+// ============================================
+model NewsletterSubscriber {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  name         String?
+  isActive     Boolean  @default(true) @map("is_active")
+  subscribedAt DateTime @default(now()) @map("subscribed_at")
+
+  @@map("newsletter_subscribers")
+}
+
+// ============================================
+// ADVERTISEMENTS TABLE (Job/Opportunity Ads)
+// ============================================
+model Advertisement {
+  id              Int       @id @default(autoincrement())
+  title           String
+  fullDescription String    @map("full_description")
+  company         String
+  category        String
+  imageUrl        String?   @map("image_url")
+  location        String
+  deadline        DateTime?
+  views           Int       @default(0)
+  applicants      Int       @default(0)
+  contactPhone    String?   @map("contact_phone")
+  contactEmail    String?   @map("contact_email")
+  contactWebsite  String?   @map("contact_website")
+  contactAddress  String?   @map("contact_address")
+  requirements    String?
+  benefits        String?
+  isActive        Boolean   @default(true) @map("is_active")
+  isFeatured      Boolean   @default(false) @map("is_featured")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("advertisements")
+}
+
+// ============================================
+// AUCTIONS TABLE
+// ============================================
+enum AuctionStatus {
+  active
+  ended
+  cancelled
+}
+
+model Auction {
+  id              Int           @id @default(autoincrement())
+  title           String
+  fullDescription String        @map("full_description")
+  currentBid      Int           @default(0) @map("current_bid")
+  startingBid     Int           @map("starting_bid")
+  minIncrement    Int           @map("min_increment")
+  endTime         DateTime      @map("end_time")
+  status          AuctionStatus @default(active)
+  images          String?
+  category        String
+  condition       String
+  location        String
+  shipping        String?
+  returns         String?
+  sellerId        Int           @map("seller_id")
+  totalBids       Int           @default(0) @map("total_bids")
+  watchers        Int           @default(0)
+  isFeatured      Boolean       @default(false) @map("is_featured")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  seller User  @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  bids   Bid[]
+
+  @@map("auctions")
+}
+
+// ============================================
+// BIDS TABLE
+// ============================================
+model Bid {
+  id        Int      @id @default(autoincrement())
+  auctionId Int      @map("auction_id")
+  userId    Int      @map("user_id")
+  amount    Int
+  bidTime   DateTime @default(now()) @map("bid_time")
+
+  auction Auction @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("bids")
+}
