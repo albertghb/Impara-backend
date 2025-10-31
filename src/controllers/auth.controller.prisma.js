@@ -2,6 +2,13 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/prisma.js';
 
+// Helper function to check if email is allowed
+function isEmailAllowed(email) {
+  const allowedUsers = process.env.ALLOWED_USERS || '';
+  const allowedEmails = allowedUsers.split(',').map(e => e.trim().toLowerCase());
+  return allowedEmails.includes(email.toLowerCase());
+}
+
 // Register new admin
 export async function register(req, res) {
   try {
@@ -14,6 +21,11 @@ export async function register(req, res) {
 
     if (password.length < 6) {
       return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    // Check if email is in allowed list
+    if (!isEmailAllowed(email)) {
+      return res.status(403).json({ message: 'Access denied. Registration is restricted to authorized users only.' });
     }
 
     // Check if user already exists
@@ -63,6 +75,11 @@ export async function login(req, res) {
     // Validation
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    // Check if email is in allowed list
+    if (!isEmailAllowed(email)) {
+      return res.status(403).json({ message: 'Access denied. Login is restricted to authorized users only.' });
     }
 
     // Find user
