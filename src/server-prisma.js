@@ -29,7 +29,12 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    const allowedOrigins = [
+    // Get allowed origins from environment variable or use defaults
+    const corsOrigins = process.env.CORS_ORIGIN || 'http://localhost:5173';
+    const allowedOrigins = corsOrigins.split(',').map(o => o.trim());
+    
+    // Always allow localhost variants in development
+    const devOrigins = [
       'http://localhost:5173',
       'http://localhost:8080',
       'http://localhost:8081',
@@ -39,11 +44,13 @@ app.use(cors({
       'http://127.0.0.1:5173'
     ];
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    const allAllowedOrigins = [...new Set([...allowedOrigins, ...devOrigins])];
+    
+    if (allAllowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      // Allow all origins in development (remove this in production)
-      callback(null, true);
+      console.log('⚠️ CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
